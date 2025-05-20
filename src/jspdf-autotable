@@ -1,0 +1,165 @@
+// PDF Report Generator using jsPDF
+// This code can be added if you want to offer PDF format as well
+
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+
+export const generatePDFReport = (analysisData) => {
+  // Create a new PDF document
+  const doc = new jsPDF();
+  
+  // Set title and metadata
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.setTextColor(44, 62, 80);
+  doc.text('RESUME ANALYSIS REPORT', 105, 20, { align: 'center' });
+  
+  // Add date
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, 30, { align: 'center' });
+  
+  // Add overall score
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`OVERALL SCORE: ${analysisData.overall_score}%`, 20, 45);
+  
+  // Add score description
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  let scoreDescription = '';
+  if (analysisData.overall_score >= 80) {
+    scoreDescription = "Your resume is in the top tier! Minor tweaks could make it perfect.";
+  } else if (analysisData.overall_score >= 60) {
+    scoreDescription = "Solid foundation with room for strategic improvements.";
+  } else {
+    scoreDescription = "Significant opportunities for enhancement to be competitive.";
+  }
+  doc.text(scoreDescription, 20, 55);
+  
+  // Detailed analysis section
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DETAILED ANALYSIS', 20, 70);
+  
+  // Create a table for detailed analysis
+  const analysisTableData = [
+    ['Category', 'Score', 'Status'],
+    ['Contact Information', `${Math.round(analysisData.contact_info.score)}%`, 
+     `Email: ${analysisData.contact_info.has_email ? 'Present' : 'Missing'}, Phone: ${analysisData.contact_info.has_phone ? 'Present' : 'Missing'}`],
+    ['Skills', `${Math.round(analysisData.skills.score)}%`, 
+     `${analysisData.skills.count} skills detected`],
+    ['Education', `${Math.round(analysisData.education.score)}%`, 
+     `${analysisData.education.detected ? 'Well Presented' : 'Needs Improvement'}`],
+    ['Experience', `${Math.round(analysisData.experience.score)}%`, 
+     `${analysisData.experience.action_verbs} action verbs, ${analysisData.experience.years_detected} years experience detected`],
+    ['ATS Compatibility', `${Math.round(analysisData.ats_compatibility.score)}%`, 
+     `${analysisData.ats_compatibility.formatting_issues ? 'Formatting issues detected' : 'No formatting issues'}`],
+    ['Readability', `${Math.round(analysisData.readability.score)}%`, 
+     analysisData.readability.evaluation],
+    ['Length', `${Math.round(analysisData.length.score)}%`, 
+     analysisData.length.evaluation]
+  ];
+  
+  doc.autoTable({
+    startY: 75,
+    head: [analysisTableData[0]],
+    body: analysisTableData.slice(1),
+    theme: 'striped',
+    headStyles: {
+      fillColor: [46, 204, 113],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold'
+    },
+    columnStyles: {
+      0: { cellWidth: 60 },
+      1: { cellWidth: 30, halign: 'center' },
+      2: { cellWidth: 100 }
+    }
+  });
+  
+  // Skills section
+  const techSkills = analysisData.skills.categorized.technical.join(', ') || 'None detected';
+  const softSkills = analysisData.skills.categorized.soft.join(', ') || 'None detected';
+  
+  let finalY = doc.lastAutoTable.finalY + 15;
+  
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('SKILLS DETECTED', 20, finalY);
+  
+  finalY += 10;
+  doc.setFontSize(14);
+  doc.text('Technical Skills:', 20, finalY);
+  
+  finalY += 7;
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  
+  // Handle long text wrapping
+  const splitTechSkills = doc.splitTextToSize(techSkills, 170);
+  doc.text(splitTechSkills, 20, finalY);
+  
+  finalY += splitTechSkills.length * 7 + 10;
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Soft Skills:', 20, finalY);
+  
+  finalY += 7;
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  
+  const splitSoftSkills = doc.splitTextToSize(softSkills, 170);
+  doc.text(splitSoftSkills, 20, finalY);
+  
+  // Check if we need a new page for feedback
+  finalY += splitSoftSkills.length * 7 + 15;
+  if (finalY > 250) {
+    doc.addPage();
+    finalY = 20;
+  }
+  
+  // Feedback section
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('IMPROVEMENT SUGGESTIONS', 20, finalY);
+  
+  finalY += 10;
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  
+  if (analysisData.feedback.length > 0) {
+    analysisData.feedback.forEach((item, index) => {
+      const feedback = `${index + 1}. ${item}`;
+      const splitFeedback = doc.splitTextToSize(feedback, 170);
+      
+      // Check if we need a new page
+      if (finalY + splitFeedback.length * 7 > 280) {
+        doc.addPage();
+        finalY = 20;
+      }
+      
+      doc.text(splitFeedback, 20, finalY);
+      finalY += splitFeedback.length * 7 + 5;
+    });
+  } else {
+    doc.text('Great job! Your resume is well-optimized.', 20, finalY);
+  }
+  
+  // Footer
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(10);
+    doc.text(`Page ${i} of ${pageCount}`, 105, 287, { align: 'center' });
+  }
+  
+  // Save the PDF
+  const date = new Date();
+  const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  doc.save(`resume-analysis-${formattedDate}.pdf`);
+};
+
+// Note: To use this functionality, you'll need to install:
+// npm install jspdf jspdf-autotable
+// Then import this function in ResumeScore.js and use it with the download button or add a separate PDF button
