@@ -35,7 +35,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="C:\resume-screening-project-2\my-app\resume-backend\venv"
+VIRTUAL_ENV="C:\Users\nathe\resumeanalyzer\resume-backend\venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
