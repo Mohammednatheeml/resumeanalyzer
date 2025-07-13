@@ -68,7 +68,7 @@ const UploadResume = () => {
 
     try {
       // Send file to backend API
-      const response = await fetch('http://192.168.1.5:5000/api/analyze', {
+      const response = await fetch('http://192.168.1.9:5000/api/analyze', {
         method: 'POST',
         body: formData,
       });
